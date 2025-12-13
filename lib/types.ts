@@ -1,0 +1,87 @@
+export interface Pokemon {
+  dex: number;
+  speciesName: string;
+  speciesId: string;
+  baseStats: {
+    atk: number;
+    def: number;
+    hp: number;
+  };
+  types: string[];
+  fastMoves: string[];
+  chargedMoves: string[];
+  tags: string[];
+  defaultIVs: {
+    cp1500?: number[];
+    cp2500?: number[];
+  };
+  buddyDistance: number;
+  thirdMoveCost: number;
+  released: boolean;
+  family?: {
+    id: string;
+    evolutions?: string[];
+  };
+  recommendedMoveset?: {
+    fastMove: string | null;
+    chargedMove1: string | null;
+    chargedMove2: string | null;
+  };
+}
+
+export interface Move {
+  moveId: string;
+  name: string;
+  type: string;
+  power: number;
+  energy: number;
+  energyGain: number;
+  cooldown: number;
+  archetype: string;
+  turns?: number;
+  buffs?: number[];
+  buffTarget?: string;
+  buffApplyChance?: string;
+}
+
+export interface RankedPokemon {
+  Pokemon: string;
+  Score: number;
+  Dex: number;
+  'Type 1': string;
+  'Type 2': string;
+  Attack: number;
+  Defense: number;
+  Stamina: number;
+  'Stat Product': number;
+  Level: number;
+  CP: number;
+  'Fast Move': string;
+  'Charged Move 1': string;
+  'Charged Move 2': string;
+  'Charged Move 1 Count': number;
+  'Charged Move 2 Count': number;
+  'Buddy Distance': number;
+  'Charged Move Cost': number;
+}
+
+export type TournamentMode = 'PlayPokemon' | 'GBL';
+
+export interface Chromosome {
+  team: string[];
+  anchors?: number[];
+  fitness: number;
+}
+
+export interface GenerationOptions {
+  mode: TournamentMode;
+  anchorPokemon?: string[];
+  populationSize?: number;
+  generations?: number;
+}
+
+export interface TypeChart {
+  [attackType: string]: {
+    [defenseType: string]: number;
+  };
+}

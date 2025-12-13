@@ -1,0 +1,134 @@
+import { getRankedGreatLeaguePokemon } from '../data/pokemon';
+import { getTopRankedPokemonNames } from '../data/rankings';
+import type { Chromosome, GenerationOptions } from '../types';
+import {
+  initializePopulation,
+  getBestChromosome,
+  hasConverged,
+  calculateDiversity,
+} from './chromosome';
+import { evaluatePopulation } from './fitness';
+import { createNextGeneration, getAdaptiveMutationRate } from './operators';
+
+/**
+ * Main genetic algorithm
+ * @param options Generation options
+ * @returns Best chromosome found
+ */
+export async function generateTeam(
+  options: GenerationOptions,
+): Promise<Chromosome> {
+  const {
+    mode,
+    anchorPokemon = [],
+    populationSize = 150,
+    generations = 75,
+  } = options;
+
+  const teamSize = mode === 'GBL' ? 3 : 6;
+
+  // Get available Pokémon pool (only top 150 ranked Pokemon for competitive viability)
+  const topRankedNames = getTopRankedPokemonNames(80, 150);
+  const availablePokemon = getRankedGreatLeaguePokemon(topRankedNames);
+  const pokemonPool = availablePokemon.map((p) => p.speciesId);
+
+  // Validate anchors
+  if (anchorPokemon.length > teamSize) {
+    throw new Error(
+      `Too many anchor Pokémon (${anchorPokemon.length}) for ${mode} mode (max ${teamSize})`,
+    );
+  }
+
+  // Initialize population
+  let population = initializePopulation(
+    populationSize,
+    pokemonPool,
+    teamSize,
+    anchorPokemon,
+  );
+
+  // Evaluate initial population
+  evaluatePopulation(population, mode);
+
+  let bestOverall = getBestChromosome(population);
+  let generationsWithoutImprovement = 0;
+
+  // Evolution loop
+  for (let gen = 0; gen < generations; gen++) {
+    // Calculate diversity
+    const diversity = calculateDiversity(population);
+
+    // Adaptive mutation rate
+    const mutationRate = getAdaptiveMutationRate(diversity);
+
+    // Create next generation
+    population = createNextGeneration(population, pokemonPool, mode, {
+      mutationRate,
+      eliteCount: Math.ceil(populationSize * 0.1),
+      crossoverRate: 0.8,
+    });
+
+    // Evaluate new population
+    evaluatePopulation(population, mode);
+
+    // Track best
+    const currentBest = getBestChromosome(population);
+
+    if (currentBest.fitness > bestOverall.fitness) {
+      bestOverall = currentBest;
+      generationsWithoutImprovement = 0;
+    } else {
+      generationsWithoutImprovement++;
+    }
+
+    // Early stopping if converged
+    if (hasConverged(population) && generationsWithoutImprovement > 10) {
+      console.log(`Converged at generation ${gen + 1}`);
+      break;
+    }
+
+    // Log progress every 10 generations
+    if ((gen + 1) % 10 === 0) {
+      console.log(
+        `Generation ${gen + 1}/${generations} | ` +
+          `Best: ${currentBest.fitness.toFixed(4)} | ` +
+          `Diversity: ${(diversity * 100).toFixed(1)}%`,
+      );
+    }
+  }
+
+  return bestOverall;
+}
+
+/**
+ * Generate multiple teams and return top N
+ * Useful for giving users options
+ */
+export async function generateMultipleTeams(
+  options: GenerationOptions,
+  count: number = 5,
+): Promise<Chromosome[]> {
+  const teams: Chromosome[] = [];
+
+  for (let i = 0; i < count; i++) {
+    console.log(`\nGenerating team ${i + 1}/${count}...`);
+    const team = await generateTeam(options);
+    teams.push(team);
+  }
+
+  // Sort by fitness
+  return teams.sort((a, b) => b.fitness - a.fitness);
+}
+
+/**
+ * Quick generate (reduced parameters for faster results)
+ */
+export async function quickGenerateTeam(
+  options: GenerationOptions,
+): Promise<Chromosome> {
+  return generateTeam({
+    ...options,
+    populationSize: 50,
+    generations: 30,
+  });
+}
