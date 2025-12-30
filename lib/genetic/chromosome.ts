@@ -235,8 +235,8 @@ export function createRandomChromosome(
         'fairy',
       ]) {
         const effectiveness = calculateEffectiveness(
-          type,
           candidatePokemon.types,
+          type,
         );
         if (effectiveness >= 1.6) {
           candidateWeaknesses.add(type);
@@ -251,8 +251,8 @@ export function createRandomChromosome(
           if (existingPokemon) {
             for (const weakness of candidateWeaknesses) {
               const existingEffectiveness = calculateEffectiveness(
-                weakness,
                 existingPokemon.types,
+                weakness,
               );
               if (existingEffectiveness >= 1.6) {
                 sharedWeaknessCount++;
@@ -347,10 +347,12 @@ export function createRandomChromosome(
     // If no good candidate found, fall back to random unique selection
     if (!selectedSpecies) {
       let fallbackAttempts = 0;
-      do {
-        selectedSpecies =
+      let selectedDex: number | undefined = undefined;
+
+      while (!selectedDex || usedDexNumbers.has(selectedDex)) {
+        const candidate =
           pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
-        const selectedDex = getDexNumber(selectedSpecies);
+        selectedDex = getDexNumber(candidate);
         fallbackAttempts++;
 
         if (fallbackAttempts > 1000) {
@@ -359,10 +361,16 @@ export function createRandomChromosome(
           );
         }
 
+        // Only assign once we've confirmed it's valid
         if (selectedDex && !usedDexNumbers.has(selectedDex)) {
-          break;
+          selectedSpecies = candidate;
         }
-      } while (true);
+      }
+    }
+
+    // At this point selectedSpecies is guaranteed to be non-null
+    if (!selectedSpecies) {
+      throw new Error('Failed to select a Pokemon for the team');
     }
 
     // Add selected Pokemon to team
@@ -398,14 +406,6 @@ export function createRandomChromosome(
   }
 
   return finalTeam;
-}
-
-/**
- * Extract base species from speciesId
- * (Duplicate of pokemon.ts for standalone use)
- */
-function getBaseSpecies(speciesId: string): string {
-  return speciesId.split('_')[0];
 }
 
 /**

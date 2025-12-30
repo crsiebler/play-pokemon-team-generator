@@ -207,7 +207,7 @@ function calculateMetaThreatScore(team: string[]): number {
       for (const moveId of pokemon!.chargedMoves) {
         const move = getMoveByMoveId(moveId);
         if (move) {
-          const effectiveness = calculateEffectiveness(move.type, threatTypes);
+          const effectiveness = calculateEffectiveness(threatTypes, move.type);
           if (effectiveness >= 1.6) {
             coveredThreats++;
             break;
@@ -340,7 +340,7 @@ function calculateAnchorSynergy(
 
     // Find anchor's weaknesses (types that hit it super-effectively)
     for (const type of Object.keys(typeEffectiveness)) {
-      const effectiveness = calculateEffectiveness(type, anchor!.types);
+      const effectiveness = calculateEffectiveness(anchor!.types, type);
       if (effectiveness >= 1.6) {
         weaknesses.add(type);
       }
@@ -351,7 +351,7 @@ function calculateAnchorSynergy(
     for (const weakness of weaknesses) {
       for (const nonAnchor of nonAnchors) {
         const resists =
-          calculateEffectiveness(weakness, nonAnchor!.types) <= 0.625;
+          calculateEffectiveness(nonAnchor!.types, weakness) <= 0.625;
         if (resists) {
           defensiveCoverage++;
           break;
@@ -374,9 +374,10 @@ function calculateAnchorSynergy(
           if (move) {
             // Get effectiveness of move against Pokemon of the weakness type
             // (e.g., if anchor weak to fire, does non-anchor have water moves?)
-            const moveEffectiveness = calculateEffectiveness(move.type, [
-              weakness,
-            ]);
+            const moveEffectiveness = calculateEffectiveness(
+              [weakness],
+              move.type,
+            );
             if (moveEffectiveness >= 1.6) {
               offensiveCoverage++;
               break;
@@ -563,7 +564,7 @@ function calculateMoveCoverage(team: string[]): number {
     // Find Pokemon's weaknesses (types that hit it super-effectively)
     const weaknesses = new Set<string>();
     for (const type of allTypes) {
-      const effectiveness = calculateEffectiveness(type, pokemon.types);
+      const effectiveness = calculateEffectiveness(pokemon.types, type);
       if (effectiveness >= 1.6) {
         weaknesses.add(type);
       }
@@ -593,9 +594,10 @@ function calculateMoveCoverage(team: string[]): number {
         // Check if this coverage move hits any of the Pokemon's weaknesses super-effectively
         // e.g., Dusknoir (Ghost) weak to Dark/Ghost, Dynamic Punch (Fighting) hits Dark super-effectively
         for (const weakness of weaknesses) {
-          const moveEffectiveness = calculateEffectiveness(move.type, [
-            weakness,
-          ]);
+          const moveEffectiveness = calculateEffectiveness(
+            [weakness],
+            move.type,
+          );
           if (moveEffectiveness >= 1.6) {
             weaknessCoverageMoves++;
             break; // Count each move only once even if it hits multiple weaknesses
@@ -740,7 +742,7 @@ function calculateTypeSynergy(team: string[]): number {
       'steel',
       'fairy',
     ]) {
-      const effectiveness = calculateEffectiveness(type, pokemon!.types);
+      const effectiveness = calculateEffectiveness(pokemon!.types, type);
       if (effectiveness >= 1.6) {
         weaknesses.add(type);
         weaknessCounts.set(type, (weaknessCounts.get(type) || 0) + 1);
@@ -777,8 +779,8 @@ function calculateTypeSynergy(team: string[]): number {
         if (i !== j) {
           const teammate = teamPokemon[j];
           const resistanceEffectiveness = calculateEffectiveness(
-            weakness,
             teammate!.types,
+            weakness,
           );
 
           // If teammate resists this weakness (0.625 or less)

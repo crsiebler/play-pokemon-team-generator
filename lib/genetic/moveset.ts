@@ -49,7 +49,7 @@ function analyzeTeamWeaknesses(team: string[]): Map<string, number> {
     if (!pokemon) continue;
 
     for (const type of allTypes) {
-      const effectiveness = calculateEffectiveness(type, pokemon.types);
+      const effectiveness = calculateEffectiveness(pokemon.types, type);
       if (effectiveness >= 1.6) {
         weaknessCounts.set(type, (weaknessCounts.get(type) || 0) + 1);
       }
@@ -148,7 +148,7 @@ function scoreMoveForCoverage(
 
   // Check if move hits team weaknesses super-effectively
   for (const [type, count] of teamWeaknesses.entries()) {
-    const effectiveness = calculateEffectiveness(move.type, [type]);
+    const effectiveness = calculateEffectiveness([type], move.type);
     if (effectiveness >= 1.6) {
       score += 0.2 * count; // Reduced from 0.3 - coverage is good but not primary
     }
@@ -156,7 +156,7 @@ function scoreMoveForCoverage(
 
   // Bonus if move hits Pokemon's own weaknesses (covers counters)
   for (const weakness of pokemonWeaknesses) {
-    const effectiveness = calculateEffectiveness(move.type, [weakness]);
+    const effectiveness = calculateEffectiveness([weakness], move.type);
     if (effectiveness >= 1.6) {
       score += 0.3; // Reduced from 0.4 - nice to have but not critical
       break;
@@ -268,7 +268,7 @@ export function getOptimalMovesetForTeam(
   ];
 
   for (const type of allTypes) {
-    const effectiveness = calculateEffectiveness(type, pokemon.types);
+    const effectiveness = calculateEffectiveness(pokemon.types, type);
     if (effectiveness >= 1.6) {
       pokemonWeaknesses.add(type);
     }
