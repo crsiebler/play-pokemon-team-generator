@@ -5,13 +5,13 @@ const typeChart = typeEffectivenessData as TypeChart;
 
 /**
  * Calculate type effectiveness multiplier
- * @param attackType The attacking move's type
  * @param defenseTypes Array of defending Pokémon's types (1 or 2)
+ * @param attackType The attacking move's type
  * @returns Effectiveness multiplier (0.39, 0.625, 1.0, 1.6, or 2.56 for dual types)
  */
 export function calculateEffectiveness(
-  attackType: string,
   defenseTypes: string[],
+  attackType: string,
 ): number {
   const normalizedAttack = attackType.toLowerCase();
 
@@ -25,7 +25,33 @@ export function calculateEffectiveness(
     }
   }
 
-  return multiplier;
+  // Round to avoid floating point precision issues
+  return Math.round(multiplier * 1000000) / 1000000;
+}
+
+/**
+ * Calculate STAB (Same Type Attack Bonus) multiplier
+ * @param pokemonTypes Array of the Pokémon's types
+ * @param moveType The move's type
+ * @returns 1.2 if STAB applies, 1.0 otherwise
+ */
+export function getSTAB(pokemonTypes: string[], moveType: string): number {
+  return hasSTAB(moveType, pokemonTypes) ? 1.2 : 1.0;
+}
+
+/**
+ * Categorize effectiveness multiplier into human-readable string
+ * @param multiplier The effectiveness multiplier
+ * @returns Category string
+ */
+export function getEffectivenessCategory(multiplier: number): string {
+  if (multiplier >= 2.0) return 'Double Super Effective';
+  if (multiplier >= 1.6) return 'Super Effective';
+  if (multiplier > 1.0) return 'Effective';
+  if (multiplier === 1.0) return 'Neutral';
+  if (multiplier >= 0.625) return 'Not Very Effective';
+  if (multiplier >= 0.39) return 'Resisted';
+  return 'Heavily Resisted';
 }
 
 /**
@@ -41,17 +67,17 @@ export function hasSTAB(moveType: string, pokemonTypes: string[]): boolean {
 
 /**
  * Calculate total damage multiplier including STAB and type effectiveness
- * @param moveType The attacking move's type
  * @param attackerTypes Array of attacker's types (for STAB calculation)
  * @param defenderTypes Array of defender's types (for effectiveness calculation)
+ * @param moveType The attacking move's type
  * @returns Total multiplier (effectiveness × STAB)
  */
 export function calculateTotalMultiplier(
-  moveType: string,
   attackerTypes: string[],
   defenderTypes: string[],
+  moveType: string,
 ): number {
-  const effectiveness = calculateEffectiveness(moveType, defenderTypes);
+  const effectiveness = calculateEffectiveness(defenderTypes, moveType);
   const stab = hasSTAB(moveType, attackerTypes) ? 1.2 : 1.0;
   return effectiveness * stab;
 }
@@ -68,7 +94,7 @@ export function getSuperEffectiveTypes(defenseTypes: string[]): string[] {
   const allTypes = Object.keys(typeChart);
 
   for (const attackType of allTypes) {
-    const effectiveness = calculateEffectiveness(attackType, defenseTypes);
+    const effectiveness = calculateEffectiveness(defenseTypes, attackType);
     if (effectiveness >= 1.6) {
       superEffective.push(attackType);
     }
@@ -88,7 +114,7 @@ export function getResistantTypes(defenseTypes: string[]): string[] {
   const allTypes = Object.keys(typeChart);
 
   for (const attackType of allTypes) {
-    const effectiveness = calculateEffectiveness(attackType, defenseTypes);
+    const effectiveness = calculateEffectiveness(defenseTypes, attackType);
     if (effectiveness <= 0.625) {
       resistant.push(attackType);
     }
@@ -117,7 +143,7 @@ export function calculateOffensiveCoverage(moveTypes: string[]): {
     let bestMultiplier = 0;
 
     for (const atkType of moveTypes) {
-      const effectiveness = calculateEffectiveness(atkType, [defType]);
+      const effectiveness = calculateEffectiveness([defType], atkType);
       bestMultiplier = Math.max(bestMultiplier, effectiveness);
     }
 
@@ -156,8 +182,8 @@ export function calculateDefensiveCoverage(teamTypes: string[][]): {
 
     for (const defTypes of teamTypes) {
       const effectiveness = calculateEffectiveness(
-        atkType,
         defTypes.filter((t) => t !== 'none'),
+        atkType,
       );
 
       if (effectiveness <= 0.625) {
@@ -170,13 +196,13 @@ export function calculateDefensiveCoverage(teamTypes: string[][]): {
 
   const resistedTypes = new Set(
     Object.entries(resistCount)
-      .filter(([_, count]) => count >= 2)
+      .filter(([, count]) => count >= 2)
       .map(([type]) => type),
   );
 
   const weakTypes = new Set(
     Object.entries(weakCount)
-      .filter(([_, count]) => count >= 3)
+      .filter(([, count]) => count >= 3)
       .map(([type]) => type),
   );
 
