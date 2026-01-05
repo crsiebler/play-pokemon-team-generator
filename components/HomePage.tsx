@@ -2,9 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import clsx from 'clsx';
-import { TournamentMode } from '@/lib/types';
-import TeamGenerator from '@/components/TeamGenerator';
 import TeamDisplay from '@/components/TeamDisplay';
+import TeamGenerator from '@/components/TeamGenerator';
+import { TournamentMode } from '@/lib/types';
 
 interface HomePageProps {
   pokemonList: string[];
@@ -13,6 +13,7 @@ interface HomePageProps {
 export function HomePage({ pokemonList }: HomePageProps) {
   const [mode, setMode] = useState<TournamentMode>('PlayPokemon');
   const [anchorPokemon, setAnchorPokemon] = useState<string[]>([]);
+  const [excludedPokemon, setExcludedPokemon] = useState<string[]>([]);
   const [generatedTeam, setGeneratedTeam] = useState<string[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -20,10 +21,15 @@ export function HomePage({ pokemonList }: HomePageProps) {
     setMode(newMode);
     setGeneratedTeam(null);
     setAnchorPokemon([]);
+    setExcludedPokemon([]);
   };
 
   const handleAnchorsChange = useCallback((anchors: string[]) => {
     setAnchorPokemon(anchors);
+  }, []);
+
+  const handleExclusionsChange = useCallback((exclusions: string[]) => {
+    setExcludedPokemon(exclusions);
   }, []);
 
   const handleGenerate = async () => {
@@ -37,6 +43,7 @@ export function HomePage({ pokemonList }: HomePageProps) {
         body: JSON.stringify({
           mode,
           anchorPokemon: anchorPokemon.filter(Boolean),
+          excludedPokemon: excludedPokemon,
         }),
       });
 
@@ -118,6 +125,7 @@ export function HomePage({ pokemonList }: HomePageProps) {
             mode={mode}
             pokemonList={pokemonList}
             onAnchorsChange={handleAnchorsChange}
+            onExclusionsChange={handleExclusionsChange}
           />
 
           {/* Generate Button */}

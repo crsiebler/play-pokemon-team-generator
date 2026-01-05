@@ -22,6 +22,7 @@ export async function generateTeam(
   const {
     mode,
     anchorPokemon = [],
+    excludedPokemon = [],
     populationSize = 150,
     generations = 75,
   } = options;
@@ -31,7 +32,12 @@ export async function generateTeam(
   // Get available Pokémon pool (only top 150 ranked Pokemon for competitive viability)
   const topRankedNames = getTopRankedPokemonNames(80, 150);
   const availablePokemon = getRankedGreatLeaguePokemon(topRankedNames);
-  const pokemonPool = availablePokemon.map((p) => p.speciesId);
+
+  // Filter out excluded Pokemon
+  const filteredPokemon = availablePokemon.filter(
+    (p) => !excludedPokemon.includes(p.speciesId),
+  );
+  const pokemonPool = filteredPokemon.map((p) => p.speciesId);
 
   // Validate anchors
   if (anchorPokemon.length > teamSize) {

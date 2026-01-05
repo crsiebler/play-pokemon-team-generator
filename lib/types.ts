@@ -76,6 +76,7 @@ export interface Chromosome {
 export interface GenerationOptions {
   mode: TournamentMode;
   anchorPokemon?: string[];
+  excludedPokemon?: string[];
   populationSize?: number;
   generations?: number;
 }
