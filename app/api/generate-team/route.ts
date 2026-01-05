@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateTeam } from '@/lib/genetic/algorithm';
 import { speciesNameToId } from '@/lib/data/pokemon';
+import { generateTeam } from '@/lib/genetic/algorithm';
 import type { TournamentMode } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { mode, anchorPokemon } = body as {
+    const { mode, anchorPokemon, excludedPokemon } = body as {
       mode: TournamentMode;
       anchorPokemon?: string[];
+      excludedPokemon?: string[];
     };
 
     // Validate mode
@@ -37,10 +38,29 @@ export async function POST(request: NextRequest) {
     console.log('Anchor Pokemon names:', anchorPokemon);
     console.log('Anchor Species IDs:', anchorSpeciesIds);
 
+    // Convert excluded Pokemon names to speciesIds
+    const excludedSpeciesIds: string[] = [];
+    if (excludedPokemon && excludedPokemon.length > 0) {
+      for (const name of excludedPokemon) {
+        const speciesId = speciesNameToId(name);
+        if (!speciesId) {
+          return NextResponse.json(
+            { error: `Invalid Pokémon name: ${name}` },
+            { status: 400 },
+          );
+        }
+        excludedSpeciesIds.push(speciesId);
+      }
+    }
+
+    console.log('Excluded Pokemon names:', excludedPokemon);
+    console.log('Excluded Species IDs:', excludedSpeciesIds);
+
     // Run genetic algorithm
     const result = await generateTeam({
       mode,
       anchorPokemon: anchorSpeciesIds,
+      excludedPokemon: excludedSpeciesIds,
       populationSize: 150,
       generations: 75,
     });
